@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Weather App</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+  <div class="container">
+    <h1>Weather App</h1>
+    <input type="text" id="zipInput" placeholder="Enter ZIP Code">
+    <button onclick="fetchWeather()">Get Weather</button>
+
+    <div id="weatherInfo" class="weather-info"></div>
+
+    <div id="forecast" class="forecast"></div>
+  </div>
+
+  <script>
+    const apiKey = '9683b20a05ee48c34fc71b9a46c6ef20'; // Replace with your actual OpenWeatherMap API key
+
+    function fetchWeather() {
+      const zip = document.getElementById('zipInput').value;
+
+      if (!zip || isNaN(zip)) {
+        alert('Please enter a valid ZIP code.');
+        return;
+      }
+
+      fetch(`https://api.openweathermap.org/data/2.5/weather?zip=${zip}&appid=${apiKey}`)
+        .then(response => {
+          if (!response.ok) {
+            throw new Error(`Network response was not ok (${response.status} - ${response.statusText})`);
+          }
+          return response.json();
+        })
+        .then(data => {
+          if (data.cod !== 200) {
+            throw new Error(data.message || 'City not found');
+          }
+          displayWeather(data);
+          fetchForecast(data.coord.lat, data.coord.lon);
+        })
+        .catch(error => {
+          console.error('Error fetching weather:', error);
+          alert(error.message);
+        });
+    }
+
+    function displayWeather(data) {
+      const weatherInfo = document.getElementById('weatherInfo');
+      const tempCelsius = kelvinToCelsius(data.main.temp);
+      const tempFahrenheit = kelvinToFahrenheit(data.main.temp);
+
+      weatherInfo.innerHTML = `
+        <h2>${data.name}, ${data.sys.country}</h2>
+        <p>Temperature: ${tempCelsius}°C / ${tempFahrenheit}°F</p>
+        <p>Weather: ${data.weather[0].main}</p>
+        <p>Description: ${data.weather[0].description}</p>
+      `;
+    }
+
+    function fetchForecast(lat, lon) {
+      fetch(`https://api.openweathermap.org/data/2.5/onecall?lat=${lat}&lon=${lon}&exclude=current,minutely,hourly&appid=${apiKey}`)
+        .then(response => response.json())
+        .then(data => {
+          displayForecast(data.daily);
+        })
+        .catch(error => {
+          console.error('Error fetching forecast:', error);
+        });
+    }
+
+    function displayForecast(dailyData) {
+      const forecastDiv = document.getElementById('forecast');
+      forecastDiv.innerHTML = '<h2>Weather Forecast</h2>';
+      for (let i = 1; i < 4; i++) {
+        const date = new Date(dailyData[i].dt * 1000);
+        const day = date.toLocaleDateString('en-US', { weekday: 'short' });
+        const temp = kelvinToCelsius(dailyData[i].temp.day);
+        const weather = dailyData[i].weather[0].main;
+
+        const forecastCard = document.createElement('div');
+        forecastCard.classList.add('forecast-card');
+        forecastCard.innerHTML = `
+          <h3>${day}</h3>
+          <p>Temperature: ${temp}°C</p>
+          <p>Weather: ${weather}</p>
+        `;
+        forecastDiv.appendChild(forecastCard);
+      }
+    }
+
+    function kelvinToCelsius(kelvin) {
+      return (kelvin - 273.15).toFixed(2);
+    }
+
+    function kelvinToFahrenheit(kelvin) {
+      return ((kelvin - 273.15) * 9 / 5 + 32).toFixed(2);
+    }
+  </script>
+</body>
+</html>
