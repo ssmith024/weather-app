@@ -17,88 +17,87 @@
     <div id="forecast" class="forecast"></div>
   </div>
 
-  <script>
-    const apiKey = '9683b20a05ee48c34fc71b9a46c6ef20'; // Replace with your actual OpenWeatherMap API key
+ <!-- Your HTML remains the same -->
 
-    function fetchWeather() {
-      const zip = document.getElementById('zipInput').value;
+<script>
+  const apiKey = '9683b20a05ee48c34fc71b9a46c6ef20'; 
 
-      if (!zip || isNaN(zip)) {
-        alert('Please enter a valid ZIP code.');
-        return;
-      }
+  function fetchWeather() {
+    const zip = document.getElementById('zipInput').value;
 
-      fetch(`https://api.openweathermap.org/data/2.5/weather?zip=${zip}&appid=${apiKey}`)
-        .then(response => {
-          if (!response.ok) {
-            throw new Error(`Network response was not ok (${response.status} - ${response.statusText})`);
-          }
-          return response.json();
-        })
-        .then(data => {
-          if (data.cod !== 200) {
-            throw new Error(data.message || 'City not found');
-          }
-          displayWeather(data);
-          fetchForecast(data.coord.lat, data.coord.lon);
-        })
-        .catch(error => {
-          console.error('Error fetching weather:', error);
-          alert(error.message);
-        });
+    if (!zip || isNaN(zip)) {
+      alert('Please enter a valid ZIP code.');
+      return;
     }
 
-    function displayWeather(data) {
-      const weatherInfo = document.getElementById('weatherInfo');
-      const tempCelsius = kelvinToCelsius(data.main.temp);
-      const tempFahrenheit = kelvinToFahrenheit(data.main.temp);
+    fetch(`https://api.openweathermap.org/data/2.5/weather?zip=${zip}&appid=${apiKey}`)
+      .then(response => {
+        if (!response.ok) {
+          throw new Error(`Network response was not ok (${response.status} - ${response.statusText})`);
+        }
+        return response.json();
+      })
+      .then(data => {
+        if (data.cod !== 200) {
+          throw new Error(data.message || 'City not found');
+        }
+        fetchState(data.coord.lat, data.coord.lon, data.name); // Fetch state based on latitude and longitude
+        displayWeather(data);
+        fetchForecast(data.coord.lat, data.coord.lon);
+      })
+      .catch(error => {
+        console.error('Error fetching weather:', error);
+        alert(error.message);
+      });
+  }
 
-      weatherInfo.innerHTML = `
-        <h2>${data.name}, ${data.sys.country}</h2>
-        <p>Temperature: ${tempCelsius}°C / ${tempFahrenheit}°F</p>
-        <p>Weather: ${data.weather[0].main}</p>
-        <p>Description: ${data.weather[0].description}</p>
-      `;
+  function fetchState(lat, lon, city) {
+    fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lon}&localityLanguage=en`)
+      .then(response => response.json())
+      .then(data => {
+        const state = data.principalSubdivision; // Get state information
+        displayCityState(city, state);
+      })
+      .catch(error => {
+        console.error('Error fetching state:', error);
+      });
+  }
+
+  function displayWeather(data) {
+    // Displaying weather information without the state for now
+    const weatherInfo = document.getElementById('weatherInfo');
+    const tempCelsius = kelvinToCelsius(data.main.temp);
+    const tempFahrenheit = kelvinToFahrenheit(data.main.temp);
+
+    const cityStateElement = weatherInfo.querySelector('h2');
+    if(!cityStateElement){
+      weatherInfo.innerHTML += '<h2>${data.name}, ${data.sys.country}</h2>'
     }
 
-    function fetchForecast(lat, lon) {
-      fetch(`https://api.openweathermap.org/data/2.5/onecall?lat=${lat}&lon=${lon}&exclude=current,minutely,hourly&appid=${apiKey}`)
-        .then(response => response.json())
-        .then(data => {
-          displayForecast(data.daily);
-        })
-        .catch(error => {
-          console.error('Error fetching forecast:', error);
-        });
-    }
+    weatherInfo.innerHTML = `
+      <p>Temperature: ${tempCelsius}°C / ${tempFahrenheit}°F</p>
+      <p>Weather: ${data.weather[0].main}</p>
+      <p>Description: ${data.weather[0].description}</p>
+    `;
+  }
 
-    function displayForecast(dailyData) {
-      const forecastDiv = document.getElementById('forecast');
-      forecastDiv.innerHTML = '<h2>Weather Forecast</h2>';
-      for (let i = 1; i < 4; i++) {
-        const date = new Date(dailyData[i].dt * 1000);
-        const day = date.toLocaleDateString('en-US', { weekday: 'short' });
-        const temp = kelvinToCelsius(dailyData[i].temp.day);
-        const weather = dailyData[i].weather[0].main;
+  function displayCityState(city, state) {
+    const weatherInfo = document.getElementById('weatherInfo');
+    const existingContent = weatherInfo.innerHTML; // Get existing weather information
+    const updatedContent = `
+      <h2>${city}, ${state}</h2>
+    ` + existingContent; // Prepend city and state to existing content
+    weatherInfo.innerHTML = updatedContent; // Display updated content
+  }
 
-        const forecastCard = document.createElement('div');
-        forecastCard.classList.add('forecast-card');
-        forecastCard.innerHTML = `
-          <h3>${day}</h3>
-          <p>Temperature: ${temp}°C</p>
-          <p>Weather: ${weather}</p>
-        `;
-        forecastDiv.appendChild(forecastCard);
-      }
-    }
+  function kelvinToCelsius(kelvin) {
+    return (kelvin - 273.15).toFixed(2);
+  }
 
-    function kelvinToCelsius(kelvin) {
-      return (kelvin - 273.15).toFixed(2);
-    }
+  function kelvinToFahrenheit(kelvin) {
+    return ((kelvin - 273.15) * 9 / 5 + 32).toFixed(2);
+  }
 
-    function kelvinToFahrenheit(kelvin) {
-      return ((kelvin - 273.15) * 9 / 5 + 32).toFixed(2);
-    }
-  </script>
-</body>
-</html>
+  // Remaining functions remain the same as in your original code
+
+</script>
